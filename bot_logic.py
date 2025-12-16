@@ -1,5 +1,8 @@
 import logging
 import time
+import json
+import os
+from datetime import datetime
 from config import TIMEFRAMES, RSI_OVERBOUGHT, RSI_EXTREME, RSI_RESET, MIN_TIMEFRAME_MATCH
 from mexc_api import MexcAPI
 from indicators import process_kline_data, calculate_rsi
@@ -11,6 +14,26 @@ class BotScanner:
         self.api = MexcAPI()
         self.telegram = telegram_bot
         self.alerted_coins = {} # {symbol: {'timestamp': time, 'values': {}}}
+
+    def save_results(self, results):
+        """
+        Save scan results to public/results.json
+        """
+        try:
+            output_data = {
+                "updated_at": datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
+                "data": results
+            }
+            
+            # Ensure folder exists
+            os.makedirs("public", exist_ok=True)
+            
+            with open("public/results.json", "w") as f:
+                json.dump(output_data, f, indent=2)
+                
+            logger.info("Results saved to public/results.json")
+        except Exception as e:
+            logger.error(f"Failed to save results: {e}")
 
     def get_rsi_status_emoji(self, rsi_value):
         if rsi_value > RSI_EXTREME:
@@ -90,25 +113,43 @@ class BotScanner:
             if all_cool:
                 logger.info(f"{symbol} cooled down. Resetting alert status.")
                 del self.alerted_coins[symbol]
-            
-            # If already alerted and not cooled down, suppress new alert
-            return
-
-        # 3. Check Alert Condition
+        
+        # Determine Signal for Web View
+        signal = "Wait"
         if overbought_count >= MIN_TIMEFRAME_MATCH:
-            # Trigger Alert
-            is_extreme = (extreme_count > 0) # Requirement: "If RSI > 90 -> add warning"
-            
-            msg = self.format_alert_message(symbol, current_price, rsi_results, is_extreme)
-            
-            logger.info(f"Sending alert for {symbol}")
-            self.telegram.send_message(msg)
-            
-            # Mark as alerted
-            self.alerted_coins[symbol] = {
-                'timestamp': time.time(),
-                'rsi': rsi_results
-            }
+             if extreme_count > 0:
+                 signal = "EXTREME SHORT"
+             else:
+                 signal = "SHORT"
+        
+        # Prepare Result Dict
+        result_entry = {
+            "symbol": symbol,
+            "rsi_15m": rsi_results.get('15m', 0),
+            "rsi_1h": rsi_results.get('1h', 0),
+            "signal": signal,
+            "price": current_price
+        }
+
+        # 3. Check Alert Condition (Telegram)
+        if signal != "Wait" and symbol not in self.alerted_coins: # Only alert if not already alerted (simple check)
+             # Note: Actual spam logic is slightly more complex above (reset logic), 
+             # but here we rely on the implementation plan which focused on web integration.
+             # Re-integrating specific alert logic:
+             
+             is_extreme = (extreme_count > 0)
+             msg = self.format_alert_message(symbol, current_price, rsi_results, is_extreme)
+             
+             logger.info(f"Sending alert for {symbol}")
+             self.telegram.send_message(msg)
+             
+             # Mark as alerted
+             self.alerted_coins[symbol] = {
+                 'timestamp': time.time(),
+                 'rsi': rsi_results
+             }
+
+        return result_entry
 
     def scan_market(self):
         """
@@ -117,12 +158,21 @@ class BotScanner:
         symbols = self.api.get_all_futures_symbols()
         logger.info(f"Starting scan for {len(symbols)} pairs...")
         
+        scan_results = []
+        
         for symbol in symbols:
             try:
-                self.process_pair(symbol)
+                result = self.process_pair(symbol)
+                if result:
+                    scan_results.append(result)
+                
                 # Rate limit prevention (though purely public API is lenient, good practice)
                 time.sleep(0.1) 
             except Exception as e:
                 logger.error(f"Error processing {symbol}: {e}")
         
+        # Sort results by urgency (e.g. signal != Wait first)
+        scan_results.sort(key=lambda x: 0 if x['signal'] == 'Wait' else 1, reverse=True)
+        
+        self.save_results(scan_results)
         logger.info("Scan completed.")

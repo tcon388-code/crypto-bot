@@ -32,8 +32,8 @@ def main():
             scanner.scan_market()
             elapsed = time.time() - start_time
             
-            logger.info(f"Scan cycle finished in {elapsed:.2f}s. Sleeping for 60 seconds...")
-            time.sleep(60) 
+            logger.info(f"Scan cycle finished in {elapsed:.2f}s. Sleeping for 300 seconds...")
+            time.sleep(300) 
             
         except KeyboardInterrupt:
             logger.info("Bot stopped by user.")

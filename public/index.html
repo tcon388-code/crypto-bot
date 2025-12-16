@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,7 +62,8 @@
             text-align: left;
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border);
         }
@@ -117,7 +119,7 @@
             text-align: center;
             color: var(--danger);
         }
-        
+
         .footer {
             margin-top: 2rem;
             text-align: center;
@@ -126,6 +128,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
@@ -163,23 +166,32 @@
             const errorEl = document.getElementById('error');
             const tableEl = document.getElementById('results-table');
             const tbody = document.getElementById('table-body');
+            const subtitleEl = document.querySelector('.subtitle');
 
             try {
                 // In a real scenario this might need cache busting, but for demo it's fine
                 const response = await fetch('results.json');
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                const data = await response.json();
-                
+                const jsonResponse = await response.json();
+
+                // Handle new structure: {updated_at, data: []}
+                const data = jsonResponse.data || jsonResponse; // Fallback if plain array
+                const updatedAt = jsonResponse.updated_at || '';
+
+                if (updatedAt) {
+                    subtitleEl.textContent = `Last Updated: ${updatedAt}`;
+                }
+
                 // Clear any existing content
                 tbody.innerHTML = '';
 
                 data.forEach(item => {
                     const row = document.createElement('tr');
-                    
+
                     // Determine signal class
                     let signalClass = 'signal-wait';
                     const signalUpper = item.signal.toUpperCase();
@@ -210,4 +222,5 @@
         document.addEventListener('DOMContentLoaded', fetchData);
     </script>
 </body>
+
 </html>
