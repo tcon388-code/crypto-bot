@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEXC RSI Scanner Results</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #1a1d21;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #2962ff;
+            --border: #333;
+            --success: #00b894;
+            --danger: #ff7675;
+            --warning: #fdcb6e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.05);
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .signal-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .signal-short {
+            background-color: rgba(255, 118, 117, 0.2);
+            color: var(--danger);
+        }
+
+        .signal-long {
+            background-color: rgba(0, 184, 148, 0.2);
+            color: var(--success);
+        }
+
+        .signal-wait {
+            background-color: rgba(253, 203, 110, 0.2);
+            color: var(--warning);
+        }
+
+        .loading {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            padding: 2rem;
+            text-align: center;
+            color: var(--danger);
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>MEXC Futures RSI Scanner</h1>
+            <div class="subtitle">Latest market scan results</div>
+        </header>
+
+        <div class="card">
+            <div id="loading" class="loading">Loading data...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <table id="results-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>RSI 15m</th>
+                        <th>RSI 1h</th>
+                        <th>Signal</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>Static Demo Version</p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const tableEl = document.getElementById('results-table');
+            const tbody = document.getElementById('table-body');
+
+            try {
+                // In a real scenario this might need cache busting, but for demo it's fine
+                const response = await fetch('results.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Clear any existing content
+                tbody.innerHTML = '';
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    
+                    // Determine signal class
+                    let signalClass = 'signal-wait';
+                    const signalUpper = item.signal.toUpperCase();
+                    if (signalUpper.includes('SHORT')) signalClass = 'signal-short';
+                    if (signalUpper.includes('LONG')) signalClass = 'signal-long';
+
+                    row.innerHTML = `
+                        <td style="font-weight: 500;">${item.symbol}</td>
+                        <td>${parseFloat(item.rsi_15m).toFixed(1)}</td>
+                        <td>${parseFloat(item.rsi_1h).toFixed(1)}</td>
+                        <td><span class="signal-badge ${signalClass}">${item.signal}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                loadingEl.style.display = 'none';
+                tableEl.style.display = 'table';
+
+            } catch (err) {
+                console.error('Fetch error:', err);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = 'Failed to load data. Ensure results.json represents a valid JSON structure.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Fetch on load
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+</body>
+</html>

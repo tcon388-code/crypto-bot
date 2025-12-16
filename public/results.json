@@ -1,0 +1,20 @@
+[
+    {
+        "symbol": "BTCUSDT",
+        "rsi_15m": 72.5,
+        "rsi_1h": 65.0,
+        "signal": "Wait"
+    },
+    {
+        "symbol": "ETHUSDT",
+        "rsi_15m": 82.1,
+        "rsi_1h": 78.4,
+        "signal": "SHORT"
+    },
+    {
+        "symbol": "SOLUSDT",
+        "rsi_15m": 25.4,
+        "rsi_1h": 30.1,
+        "signal": "LONG"
+    }
+]
