@@ -17,7 +17,7 @@ class BotScanner:
 
     def save_results(self, results):
         """
-        Save scan results to public/results.json
+        Save scan results to public/results.json safely (atomic write)
         """
         try:
             output_data = {
@@ -28,8 +28,15 @@ class BotScanner:
             # Ensure folder exists
             os.makedirs("public", exist_ok=True)
             
-            with open("public/results.json", "w") as f:
+            temp_file = "public/results.json.tmp"
+            target_file = "public/results.json"
+            
+            with open(temp_file, "w") as f:
                 json.dump(output_data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            
+            os.replace(temp_file, target_file)
                 
             logger.info("Results saved to public/results.json")
         except Exception as e:

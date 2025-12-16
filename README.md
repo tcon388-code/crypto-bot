@@ -35,3 +35,21 @@ python main.py
 Mở file `config.py` để chỉnh sửa:
 - `RSI_OVERBOUGHT`: Ngưỡng quá mua (mặc định 80).
 - `MIN_TIMEFRAME_MATCH`: Số lượng khung thời gian cần thỏa mãn (mặc định 2).
+
+## Web Demo Interface
+
+Project này bao gồm một giao diện web tĩnh đơn giản trong thư mục `public/`.
+Khi bạn deploy repo này lên **Vercel**, thư mục `public` sẽ được serve tại root domain.
+
+### Cách cập nhật dữ liệu trên Vercel:
+1. Chạy bot ở máy local: `python main.py`
+2. Bot sẽ tự động quét và lưu kết quả vào `public/results.json` mỗi 5 phút.
+3. Để cập nhật trang web trên Vercel, bạn cần commit và push file JSON mới lên Github:
+
+```bash
+git add public/results.json
+git commit -m "update results"
+git push origin main
+```
+
+4. Vercel sẽ tự động build lại và hiển thị dữ liệu mới nhất.
